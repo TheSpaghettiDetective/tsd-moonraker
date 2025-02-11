@@ -1,0 +1,23 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006-2011 OpenWrt.org
+
+START=67
+STOP=01
+DEPEND=moonraker
+USE_PROCD=1
+PROG=PARENT_DIR/moonraker-obico-env/bin/python
+USERDATA=/mnt/UDISK/printer_data
+PRINTER_CONFIG_DIR=$USERDATA/config
+PRINTER_CUSTOM_CFG=$PRINTER_CONFIG_DIR/moonraker-obico.cfg
+OOM_ADJ=-17
+
+start_service() {
+    procd_open_instance
+    procd_set_param env HOME=ROOT_HOME_DIR
+    #FIXME: make this detected and dynamic
+    procd_set_param env PYTHONPATH=PARENT_DIR/moonraker-obico
+    procd_set_param working_dir PARENT_DIR/moonraker-obico
+    procd_set_param oom_adj $OOM_ADJ
+    procd_set_param command $PROG -m moonraker_obico.app -c $PRINTER_CUSTOM_CFG
+    procd_close_instance
+}

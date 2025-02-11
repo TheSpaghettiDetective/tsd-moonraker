@@ -36,6 +36,9 @@ ensure_deps() {
   elif [ $CREALITY_VARIANT = "k1" ]; then
     /opt/bin/opkg install ${PKGLIST}
     pip3 install -q --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host=files.pythonhosted.org --no-cache-dir virtualenv
+  elif [ $CREALITY_VARIANT = "k2" ]; then
+    /opt/bin/opkg install ${PKGLIST}
+    pip3 install -q --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host=files.pythonhosted.org --no-cache-dir virtualenv
   fi
   ensure_venv
   if [ $CREALITY_VARIANT = "sonic_pad" ]; then
@@ -43,6 +46,10 @@ ensure_deps() {
     debug Running... "${OBICO_ENV}"/bin/pip3 install -q --require-virtualenv --no-cache-dir -r "${OBICO_DIR}"/requirements.txt
     "${OBICO_ENV}"/bin/pip3 install -q --require-virtualenv --no-cache-dir -r "${OBICO_DIR}"/requirements.txt
   elif [ $CREALITY_VARIANT = "k1" ]; then
+    pip3 install -q --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host=files.pythonhosted.org --no-cache-dir --upgrade pip
+    debug Running... "${OBICO_ENV}"/bin/pip3 install -q --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host=files.pythonhosted.org --require-virtualenv --no-cache-dir -r "${OBICO_DIR}"/requirements.txt
+    "${OBICO_ENV}"/bin/pip3 install -q --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host=files.pythonhosted.org --require-virtualenv --no-cache-dir -r "${OBICO_DIR}"/requirements.txt
+  elif [ $CREALITY_VARIANT = "k2" ]; then
     pip3 install -q --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host=files.pythonhosted.org --no-cache-dir --upgrade pip
     debug Running... "${OBICO_ENV}"/bin/pip3 install -q --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host=files.pythonhosted.org --require-virtualenv --no-cache-dir -r "${OBICO_DIR}"/requirements.txt
     "${OBICO_ENV}"/bin/pip3 install -q --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host=files.pythonhosted.org --require-virtualenv --no-cache-dir -r "${OBICO_DIR}"/requirements.txt
@@ -59,6 +66,15 @@ recreate_service() {
     ln -s ../init.d/moonraker_obico_service /etc/rc.d/K1moonraker_obico_service
   elif [ $CREALITY_VARIANT = "k1" ]; then
     cp "${OBICO_DIR}"/scripts/openwrt_init.d/S99moonraker_obico /etc/init.d/
+  elif [ $CREALITY_VARIANT = "k2" ]; then
+    cp "${OBICO_DIR}"/scripts/openwrt_init.d/k2_moonraker_obico_service /etc/init.d/moonraker_obico_service
+    PARENT_DIR=$(readlink -f $(dirname "$0")/../..)
+    sed --in-place \
+      --expression "s,ROOT_HOME_DIR,${HOME},g" \
+      --expression "s,PARENT_DIR,${PARENT_DIR},g" \
+      /etc/init.d/moonraker_obico_service
+    # register the start/stop scripts
+    /etc/init.d/moonraker_obico_service enable
   fi
 }
 
@@ -78,6 +94,13 @@ EOF
 
     cat <<EOF
 rm -f /etc/init.d/S99moonraker_obico
+EOF
+
+  elif is_k2; then
+
+    cat <<EOF
+/etc/init.d/moonraker_obico_service disable
+rm -f /etc/init.d/moonraker_obico_service
 EOF
 
   else
@@ -120,7 +143,8 @@ prompt_for_variant_if_needed() {
   echo "What Creality system are you installing Obico on right now?"
   echo "1) Sonic Pad"
   echo "2) K1/K1 Max"
-  echo "3) Other"
+  echo "3) K2"
+  echo "4) Other"
   echo ""
 
   read user_input
@@ -128,6 +152,8 @@ prompt_for_variant_if_needed() {
       CREALITY_VARIANT="sonic_pad"
   elif [ "$user_input" = "2" ]; then
       CREALITY_VARIANT="k1"
+  elif [ "$user_input" = "3" ]; then
+      CREALITY_VARIANT="k2"
   else
       echo "Obico doesn't currently support this model."
       exit 0
@@ -149,6 +175,9 @@ prompt_for_variant_if_needed
 if is_k1; then
   MOONRAKER_CONF_DIR="/usr/data/printer_data/config"
   MOONRAKER_LOG_DIR="/usr/data/printer_data/logs"
+elif is_k2; then
+  MOONRAKER_CONF_DIR="/mnt/UDISK/printer_data/config"
+  MOONRAKER_LOG_DIR="/mnt/UDISK/printer_data/logs"
 else
   MOONRAKER_CONF_DIR="/mnt/UDISK/printer_config"
   MOONRAKER_LOG_DIR="/mnt/UDISK/printer_logs"

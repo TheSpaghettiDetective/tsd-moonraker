@@ -34,6 +34,14 @@ is_k1() {
   fi
 }
 
+is_k2() {
+  if [ -n "$CREALITY_VARIANT" -a "$CREALITY_VARIANT" = "k2" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 create_config() {
   if [ -z "${OBICO_SERVER}" ]; then
     print_header " Obico Server URL "
